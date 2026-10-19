@@ -1,0 +1,14 @@
+apiVersion: cdi.kubevirt.io/v1beta1
+kind: DataVolume
+metadata:
+  name: ubuntu-mini-root-20g
+  namespace: unix-lab
+spec:
+  source:
+    pvc:
+      name: ubuntu-mini-root
+      namespace: unix-lab
+  storage:
+    resources:
+      requests:
+        storage: 20Gi

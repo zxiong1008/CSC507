@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ubuntu-mini-cloudinit
+  namespace: unix-lab
+type: Opaque
+stringData:
+  userdata: |-
+    #cloud-config
+    hostname: ubuntu-mini
+    users:
+      - name: student
+        groups: [sudo]
+        shell: /bin/bash
+        sudo: ALL=(ALL) NOPASSWD:ALL
+        lock_passwd: true
+        ssh_authorized_keys:
+          - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMuUhsmCPZSIh1beXbVF2HpRIUs2wyLOsZrL0EsWJiZU student@debian-mini
+    ssh_pwauth: false
+  networkdata: |-
+    version: 2
+    ethernets:
+      enp1s0:
+        dhcp4: true

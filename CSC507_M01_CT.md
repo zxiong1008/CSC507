@@ -59,15 +59,37 @@ df -hT
 
 Shows mounted filesystem types, capacity, usage, and available space.
 
-## Connect to the Ubuntu VM from Windows
+## Start and connect to the Ubuntu VM from Windows
 
-Start this command in a PowerShell terminal and leave it running; it forwards local port 2224 to Ubuntu's SSH port:
+To start Minikube, wait for the VM, open SSH forwarding in a separate PowerShell window, and connect to an interactive Ubuntu shell in the current window, run this from the project folder in PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\start-linux.ps1
+```
+
+Type `exit` to leave the shell; the script then closes the port forward. To run the Linux inventory commands without opening a shell, add `-Inventory` to the command. If doing this manually, use the commands in steps 3 and 4 in separate PowerShell windows.
+
+1. Open PowerShell and start the Kubernetes cluster (Minikube must be installed):
+
+	```powershell
+	minikube start
+	```
+
+2. Confirm that the Ubuntu VM is running and ready:
+
+	```powershell
+	kubectl -n unix-lab get vm,vmi
+	```
+
+	The VM is configured to start automatically. Wait for `ubuntu-lab` to show `Running` and `True` before continuing.
+
+3. In a separate PowerShell terminal, start the SSH port forward and leave it running:
 
 ```powershell
 & "$env:LOCALAPPDATA\Programs\virtctl\virtctl.exe" port-forward vm/ubuntu-lab 2224:22 -n unix-lab
 ```
 
-In a second PowerShell terminal, connect using the SSH key:
+4. In another PowerShell terminal, connect using the SSH key:
 
 ```powershell
 ssh -i "$HOME\.ssh\k8s-debian-mini" -p 2224 student@127.0.0.1
@@ -78,5 +100,5 @@ After connecting, run the Linux inventory commands above. The VM account is `stu
 ## Notes
 
 - These results describe the VM's **virtual hardware**, not the Windows host's physical components.
-- The Ubuntu VM is configured for 1 virtual CPU, 512 MiB requested memory, and a 20 GiB persistent virtual root disk. The usable RAM and filesystem capacity shown inside Ubuntu can be lower because of virtualization, partitions, and filesystem overhead.
+- The `ubuntu-lab` VM is configured for 1 virtual CPU and 1 GiB requested memory, with an approximately 10 GiB persistent virtual root disk. The usable RAM and root filesystem shown inside Ubuntu are lower because of virtualization, partitions, and filesystem overhead.
 - For the paper's screenshots, show each command with its output in a readable terminal capture. Do not include private keys or other credentials.

@@ -64,7 +64,7 @@ Shows mounted filesystem types, capacity, usage, and available space.
 Start this command in a PowerShell terminal and leave it running; it forwards local port 2224 to Ubuntu's SSH port:
 
 ```powershell
-& "$env:LOCALAPPDATA\Programs\virtctl\virtctl.exe" port-forward vm/ubuntu-mini 2224:22 -n unix-lab
+& "$env:LOCALAPPDATA\Programs\virtctl\virtctl.exe" port-forward vm/ubuntu-lab 2224:22 -n unix-lab
 ```
 
 In a second PowerShell terminal, connect using the SSH key:

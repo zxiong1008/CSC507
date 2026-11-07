@@ -1,0 +1,5 @@
+method,elapsed_seconds,line_count
+sequential buffered writes,1.267244,1000000
+batched writelines,1.336087,1000000
+thread pool,1.096272,1000000
+process pool,0.573866,1000000

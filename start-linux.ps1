@@ -26,6 +26,20 @@ $sshCommand = Get-Command ssh -ErrorAction Stop
 if (-not (Test-Path $virtctl)) { throw "virtctl was not found at $virtctl" }
 if (-not (Test-Path $sshKey)) { throw "SSH private key was not found at $sshKey" }
 
+$dockerCommand = Get-Command docker -ErrorAction SilentlyContinue
+if (-not $dockerCommand) {
+    $dockerPaths = @(
+        (Join-Path $env:ProgramFiles 'Docker\Docker\resources\bin\docker.exe')
+        (Join-Path $env:LOCALAPPDATA 'Programs\DockerDesktop\resources\bin\docker.exe')
+    )
+    $dockerPath = $dockerPaths | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+    if ($dockerPath) {
+        $dockerCommand = Get-Command $dockerPath -ErrorAction Stop
+    } else {
+        throw 'Docker CLI was not found. Install Docker Desktop or add Docker to PATH.'
+    }
+}
+
 function Test-LocalTcpPort {
     param([int]$Port)
     $client = [System.Net.Sockets.TcpClient]::new()
@@ -36,6 +50,17 @@ function Test-LocalTcpPort {
         return $false
     } finally {
         $client.Dispose()
+    }
+}
+
+function Test-DockerReady {
+    $previousPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        & $dockerCommand.Source info --format='{{.ServerVersion}}' 2>$null | Out-Null
+        return $LASTEXITCODE -eq 0
+    } finally {
+        $ErrorActionPreference = $previousPreference
     }
 }
 
@@ -50,6 +75,53 @@ function Test-SshReady {
     } finally {
         $ErrorActionPreference = $previousPreference
     }
+}
+
+$dockerReady = Test-DockerReady
+if (-not $dockerReady) {
+    $dockerDesktopPaths = @(
+        (Join-Path $env:LOCALAPPDATA 'Programs\DockerDesktop\Docker Desktop.exe')
+    )
+    $dockerDesktop = $dockerDesktopPaths | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+    if (-not $dockerDesktop) {
+        throw 'Docker is not running, and Docker Desktop was not found in its standard installation locations.'
+    }
+
+    try {
+        $dockerProcess = Start-Process -FilePath $dockerDesktop -PassThru
+        Write-Host "Docker Desktop was opened (PID $($dockerProcess.Id)); waiting for the Docker engine..."
+    } catch {
+        throw "Docker is not running, and Docker Desktop could not be opened: $($_.Exception.Message)"
+    }
+
+    for ($attempt = 1; $attempt -le 60; $attempt++) {
+        Start-Sleep -Seconds 2
+        if (Test-DockerReady) {
+            $dockerReady = $true
+            break
+        }
+        if ($attempt % 10 -eq 0) {
+            Write-Host "Still waiting for the Docker engine ($($attempt * 2) seconds elapsed)..."
+        }
+    }
+
+    if (-not $dockerReady) {
+        throw 'Docker Desktop was opened, but its engine did not become ready within 120 seconds.'
+    }
+}
+Write-Host 'Docker is running.'
+$dockerDesktopWindows = Get-Process -Name 'Docker Desktop' -ErrorAction SilentlyContinue |
+    Where-Object { $_.MainWindowHandle -ne [IntPtr]::Zero }
+if ($dockerDesktopWindows) {
+    foreach ($dockerWindow in $dockerDesktopWindows) {
+        if ($dockerWindow.CloseMainWindow()) {
+            Write-Host "Closed the Docker Desktop window (PID $($dockerWindow.Id)); the Docker engine remains running."
+        } else {
+            Write-Warning "Could not close the Docker Desktop window (PID $($dockerWindow.Id))."
+        }
+    }
+} else {
+    Write-Host 'No Docker Desktop window is open.'
 }
 
 $previousPreference = $ErrorActionPreference
